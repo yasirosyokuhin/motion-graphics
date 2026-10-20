@@ -46,21 +46,22 @@ function tagsOf(text) {
   return out;
 }
 
-// Categories that read well full-screen in a music video, and how often.
+// How often each category is picked. Every category can appear; app-like
+// screens, diagrams and borders are rarer since they read as UI, not scenery.
 export const CATEGORY_WEIGHT = {
   landscapes: 1.4, cosmos: 1.3, solids: 1.3, demoscene: 1.5, algorithms: 1.2, 'motion-lab': 1.0, weather: 1.2,
   animals: 0.8, cities: 1.2, lettering: 0.5, music: 1.0, retro: 0.7, arcade: 0.4, science: 0.6, occasions: 0.3,
-  things: 0.3, india: 0.3, food: 0.1, mascots: 0.15, frames: 0, screens: 0, 'live-data': 0, explainers: 0, 'empty-states': 0,
+  things: 0.3, india: 0.3, food: 0.25, mascots: 0.3, frames: 0.2, screens: 0.35, 'live-data': 0.35, explainers: 0.3, 'empty-states': 0.25,
 };
 
 // Style key -> categories it leans toward.
 const STYLE_CATEGORY = {
-  cyber: { demoscene: 2, algorithms: 1.8, solids: 1.6, cosmos: 1.2, cities: 1.4, retro: 1.3 },
+  cyber: { demoscene: 2, algorithms: 1.8, solids: 1.6, cosmos: 1.2, cities: 1.4, retro: 1.3, screens: 1.4, 'live-data': 1.4 },
   rock: { demoscene: 1.8, solids: 1.6, weather: 1.4, algorithms: 1.2 },
   pop: { landscapes: 1.3, occasions: 2, animals: 1.5, music: 1.6, lettering: 1.3, solids: 1.1 },
   lofi: { landscapes: 2, cities: 1.6, weather: 1.6, animals: 1.3, music: 1.4 },
   ambient: { landscapes: 2.2, cosmos: 1.6, weather: 1.5, 'motion-lab': 1.3 },
-  hiphop: { cities: 2, demoscene: 1.5, music: 1.6, solids: 1.2, retro: 1.3 },
+  hiphop: { cities: 2, demoscene: 1.5, music: 1.6, solids: 1.2, retro: 1.3, screens: 1.2, 'live-data': 1.2 },
   vapor: { cities: 1.8, retro: 2, cosmos: 1.4, landscapes: 1.3, demoscene: 1.3 },
   dark: { weather: 1.6, cosmos: 1.4, algorithms: 1.6, demoscene: 1.5, landscapes: 1.1 },
 };

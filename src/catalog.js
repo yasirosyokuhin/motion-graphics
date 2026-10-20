@@ -3,7 +3,6 @@
 
 import { renderTo, LOOKS } from '../vendor/ascii-magic-art/runtime/canvas.js';
 import { loadPiece, loadIndex, loadCategories } from './piece-source.js';
-import { CATEGORY_WEIGHT } from './library.js';
 
 const $ = (id) => document.getElementById(id);
 const JA = {
@@ -13,8 +12,7 @@ const JA = {
   'empty-states': '空状態', retro: 'レトロPC', science: '科学', music: '音楽', food: '食べ物', india: 'インド',
 };
 
-const state = { index: [], cats: [], cat: 'all', q: '', look: 'original', mvOnly: false, cards: [], visible: new Set(), modal: null, t0: performance.now() };
-const usedInMV = (p) => (CATEGORY_WEIGHT[p.category] ?? 0.3) > 0;
+const state = { index: [], cats: [], cat: 'all', q: '', look: 'original', cards: [], visible: new Set(), modal: null, t0: performance.now() };
 
 async function getPiece(slug) {
   const c = getPiece.cache || (getPiece.cache = new Map());
@@ -47,7 +45,6 @@ function filtered() {
   const q = state.q.trim().toLowerCase();
   return state.index.filter((p) =>
     (state.cat === 'all' || p.category === state.cat) &&
-    (!state.mvOnly || usedInMV(p)) &&
     (!q || p.slug.includes(q) || p.name.toLowerCase().includes(q) || p.tags.some((t) => t.includes(q)) || (JA[p.category] || '').includes(q)));
 }
 
@@ -76,7 +73,7 @@ function buildGrid() {
   for (const p of list) {
     const el = document.createElement('button');
     el.className = 'card';
-    el.innerHTML = `<canvas width="480" height="270"></canvas><div class="meta"><b>${p.name}</b><span>${JA[p.category] || p.category}${usedInMV(p) ? '' : ' · MV外'}</span></div>`;
+    el.innerHTML = `<canvas width="480" height="270"></canvas><div class="meta"><b>${p.name}</b><span>${JA[p.category] || p.category}</span></div>`;
     const card = { el, slug: p.slug, info: p, canvas: el.querySelector('canvas'), piece: null };
     el._card = card;
     el.addEventListener('click', () => openModal(card));
@@ -90,7 +87,7 @@ function buildGrid() {
 async function openModal(card) {
   const p = card.info;
   $('mTitle').textContent = p.name;
-  $('mCat').textContent = `${JA[p.category] || p.category} / ${p.slug}${usedInMV(p) ? '' : '（MVの自動選択には出ないカテゴリ）'}`;
+  $('mCat').textContent = `${JA[p.category] || p.category} / ${p.slug}`;
   $('mNote').textContent = p.note;
   $('mTags').innerHTML = p.tags.map((t) => `<span>${t}</span>`).join('');
   $('modal').hidden = false;
@@ -133,7 +130,6 @@ async function main() {
     buildGrid();
   });
   $('q').addEventListener('input', () => { state.q = $('q').value; buildGrid(); });
-  $('mv').addEventListener('change', () => { state.mvOnly = $('mv').checked; buildGrid(); });
   $('look').addEventListener('change', () => {
     state.look = $('look').value;
     for (const c of state.cards) if (c.piece) paintCard(c, (performance.now() - state.t0) / 1000);
