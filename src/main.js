@@ -2,7 +2,7 @@
 
 import { AudioEngine } from './audio.js';
 import { parseLyrics, timeLyrics, analyzeLyricMood, toLRC } from './lyrics.js';
-import { buildStyle, PRESETS } from './style.js';
+import { buildStyle, PRESETS, fontOf } from './style.js';
 import { Library } from './library.js';
 import { Director } from './director.js';
 import { PieceLayer } from './layers/pieces.js';
@@ -123,6 +123,7 @@ async function generate() {
     const mood = analyzeLyricMood(ui.lyrics.value + ' ' + title);
     const seed = (hashString(title + '|' + ui.lyrics.value + '|' + a.duration.toFixed(2)) + state.seedSalt * 7919) >>> 0;
     const style = buildStyle({ features: a.features, mood, preset: ui.preset.value, seed, intensity: +ui.intensity.value });
+    await loadTypefaces(style, `${ui.lyrics.value}${title}${artist}LYRIC 0123456789:`);
     const [w, h] = sizeFor(ui.aspect.value, ui.quality.value);
     state.stage.width = w; state.stage.height = h;
     if (!state.post) state.post = new Post(ui.out);
@@ -148,6 +149,16 @@ async function generate() {
   }
   state.busy = false;
   ui.generate.disabled = ui.reroll.disabled = ui.export.disabled = ui.play.disabled = false;
+}
+
+// Canvas text never triggers a webfont download, so fetch the faces (and the
+// Japanese subsets the lyrics actually use) before the first frame. Gives up
+// after a few seconds so an offline page still renders with fallbacks.
+async function loadTypefaces(style, text) {
+  const faces = Object.values(style.typeface);
+  const chars = [...new Set([...text])].join('');
+  const loads = Promise.all(faces.map((face) => document.fonts.load(fontOf(face, 48), chars).catch(() => null)));
+  await Promise.race([loads, new Promise((r) => setTimeout(r, 4000))]);
 }
 
 // ---------------------------------------------------------------- render loop

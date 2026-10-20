@@ -2,6 +2,7 @@
 // grids and spectral terrain, Swiss/Bauhaus block grids, and a HUD overlay.
 
 import { clamp, easeOutCubic, easeInOutCubic, rgbToCss, mixRgb, isCJK } from '../util.js';
+import { fontOf } from '../style.js';
 
 const MONO = '"JetBrains Mono", ui-monospace, monospace';
 const css = rgbToCss;
@@ -257,7 +258,7 @@ export class GeoBlocks extends Base {
         default: {
           const l = letters.length ? letters[i % letters.length] : '●';
           g.rotate(-rot);
-          g.font = `900 ${s * 1.8}px ${isCJK(l) ? S.font.display : '"Bebas Neue", sans-serif'}`;
+          g.font = fontOf(isCJK(l) ? S.typeface.jp : S.typeface.en, s * 1.6);
           g.textAlign = 'center'; g.textBaseline = 'middle';
           g.fillText(l, 0, s * 0.08);
         }

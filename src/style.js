@@ -23,6 +23,24 @@ const FONT = {
   mono: '"JetBrains Mono", "DotGothic16", monospace',
 };
 
+// Lyric typefaces per preset: [family, weight, italic]. Japanese / Latin /
+// vertical (tategaki) / small mono labels. All served by Google Fonts (index.html).
+const MONO_LABEL = ['"Space Mono"', 700];
+export const TYPEFACES = {
+  cyber: { jp: ['"Dela Gothic One"', 400], en: ['"Unbounded"', 800], vert: ['"Dela Gothic One"', 400] },
+  rock: { jp: ['"Dela Gothic One"', 400], en: ['"Anton"', 400], vert: ['"Zen Antique"', 400] },
+  pop: { jp: ['"Mochiy Pop One"', 400], en: ['"Bungee"', 400], vert: ['"Mochiy Pop One"', 400] },
+  lofi: { jp: ['"Zen Maru Gothic"', 900], en: ['"Syne"', 800], vert: ['"Zen Old Mincho"', 900] },
+  ambient: { jp: ['"Zen Old Mincho"', 900], en: ['"Cormorant Garamond"', 600, true], vert: ['"Zen Old Mincho"', 900] },
+  hiphop: { jp: ['"Dela Gothic One"', 400], en: ['"Archivo Black"', 400], vert: ['"Dela Gothic One"', 400] },
+  vapor: { jp: ['"RocknRoll One"', 400], en: ['"Monoton"', 400], vert: ['"Zen Old Mincho"', 900] },
+  dark: { jp: ['"Zen Antique"', 400], en: ['"Cinzel"', 900], vert: ['"Yuji Syuku"', 400] },
+};
+const FALLBACK = '"Noto Sans JP", "Hiragino Kaku Gothic ProN", sans-serif';
+export function fontOf([family, weight, italic], size) {
+  return `${italic ? 'italic ' : ''}${weight} ${Math.round(size)}px ${family}, ${FALLBACK}`;
+}
+
 // palette: [bg, primary, secondary, accent, fg]
 export const PRESETS = {
   cyber: {
@@ -38,7 +56,7 @@ export const PRESETS = {
     looks: ['original', 'binary', 'dense', 'numbers', 'dots'],
     colorMode: ['duotone', 'duotone', 'original'],
     fx: { rgb: 1.0, glitch: 1.0, grain: 0.07, scan: 0.45, feedback: 0.55, bloom: 0.9, strobe: 0.6, vignette: 0.6 },
-    type: ['glitch', 'impact', 'split', 'typewriter'],
+    type: ['glitch', 'impact', 'split', 'decode'],
     cutBars: 4,
   },
   rock: {
@@ -69,7 +87,7 @@ export const PRESETS = {
     looks: ['original', 'dots', 'squares', 'letters'],
     colorMode: ['original', 'original', 'duotone'],
     fx: { rgb: 0.45, glitch: 0.35, grain: 0.04, scan: 0.1, feedback: 0.4, bloom: 0.6, strobe: 0.35, vignette: 0.3 },
-    type: ['split', 'impact', 'stack', 'typewriter'],
+    type: ['split', 'impact', 'stack', 'decode'],
     cutBars: 4,
   },
   lofi: {
@@ -85,7 +103,7 @@ export const PRESETS = {
     looks: ['original', 'dots', 'ascii'],
     colorMode: ['original', 'duotone'],
     fx: { rgb: 0.25, glitch: 0.15, grain: 0.12, scan: 0.15, feedback: 0.6, bloom: 0.5, strobe: 0.05, vignette: 0.8 },
-    type: ['typewriter', 'vertical', 'split'],
+    type: ['decode', 'vertical', 'split'],
     cutBars: 8,
   },
   ambient: {
@@ -101,7 +119,7 @@ export const PRESETS = {
     looks: ['original', 'dots', 'ascii'],
     colorMode: ['mono', 'original', 'duotone'],
     fx: { rgb: 0.1, glitch: 0.05, grain: 0.09, scan: 0.0, feedback: 0.75, bloom: 0.6, strobe: 0.0, vignette: 0.9 },
-    type: ['vertical', 'typewriter', 'split'],
+    type: ['vertical', 'decode', 'split'],
     cutBars: 8,
   },
   hiphop: {
@@ -117,7 +135,7 @@ export const PRESETS = {
     looks: ['original', 'dense', 'blocks', 'numbers'],
     colorMode: ['duotone', 'mono', 'original'],
     fx: { rgb: 0.6, glitch: 0.6, grain: 0.12, scan: 0.2, feedback: 0.3, bloom: 0.4, strobe: 0.5, vignette: 0.7 },
-    type: ['impact', 'stack', 'typewriter', 'glitch'],
+    type: ['impact', 'stack', 'decode', 'glitch'],
     cutBars: 2,
   },
   vapor: {
@@ -132,7 +150,7 @@ export const PRESETS = {
     looks: ['original', 'dots', 'lines', 'squares'],
     colorMode: ['duotone', 'original'],
     fx: { rgb: 0.7, glitch: 0.4, grain: 0.08, scan: 0.6, feedback: 0.55, bloom: 1.0, strobe: 0.2, vignette: 0.6 },
-    type: ['split', 'typewriter', 'impact', 'vertical'],
+    type: ['split', 'decode', 'impact', 'vertical'],
     cutBars: 4,
   },
   dark: {
@@ -202,6 +220,7 @@ export function buildStyle({ features, mood, preset = 'auto', seed = 1, intensit
     looks: p.looks,
     colorModes: p.colorMode,
     font: p.font,
+    typeface: { ...TYPEFACES[key], mono: MONO_LABEL },
     scenes,
     fx,
     type: p.type,

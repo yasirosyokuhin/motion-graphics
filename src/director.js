@@ -3,7 +3,8 @@
 
 import { Timeline } from './audio.js';
 import { lyricAt, keywordOf } from './lyrics.js';
-import { clamp, easeOutCubic, mulberry32, rgbToCss } from './util.js';
+import { clamp, easeOutCubic, mulberry32, rgbToCss, isCJK } from './util.js';
+import { fontOf } from './style.js';
 import { PAINTINGS } from './library.js';
 import { ASCII_SCENES } from './layers/ascii.js';
 import { TECHNO_SCENES, drawHUD } from './layers/techno.js';
@@ -335,9 +336,9 @@ export class Director {
       g.globalAlpha = a;
       g.fillStyle = rgbToCss(S.fg);
       g.textBaseline = 'alphabetic';
-      g.font = `900 ${m * 0.065}px ${S.font.display}`;
+      g.font = fontOf(isCJK(this.title || '') ? S.typeface.jp : S.typeface.en, m * 0.065);
       g.fillText(this.title || '', m * 0.06, f.h - m * 0.11);
-      g.font = `500 ${m * 0.024}px "JetBrains Mono", monospace`;
+      g.font = fontOf(S.typeface.mono, m * 0.022);
       g.fillStyle = rgbToCss(S.colors[0]);
       g.fillText((this.artist || '').toUpperCase(), m * 0.062, f.h - m * 0.065);
       g.restore();

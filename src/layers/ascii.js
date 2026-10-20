@@ -2,6 +2,7 @@
 // cell) from the frame state and the grid is stamped onto the stage.
 
 import { clamp, smoothstep, mulberry32, makeNoise, rgbToCss, mixRgb, wrapText, isCJK } from '../util.js';
+import { fontOf } from '../style.js';
 
 const MONO = '"JetBrains Mono", "DotGothic16", ui-monospace, monospace';
 
@@ -241,11 +242,11 @@ export class AsciiText extends Base {
     c.clearRect(0, 0, G.cols, G.rows);
     if (!text) { this.alpha = null; return; }
     c.setTransform(1 / G.cw, 0, 0, 1 / G.ch, 0, 0);
-    const font = isCJK(text) ? this.style.font.display : '"Bebas Neue", "Noto Sans JP", sans-serif';
+    const face = isCJK(text) ? this.style.typeface.jp : this.style.typeface.en;
     let size = f.h * 0.42;
     let lines;
     for (let i = 0; i < 12; i++) {
-      c.font = `900 ${size}px ${font}`;
+      c.font = fontOf(face, size);
       lines = wrapText(c, text, f.w * 0.9);
       const wMax = Math.max(...lines.map((l) => c.measureText(l).width));
       if (wMax <= f.w * 0.92 && lines.length * size * 1.05 <= f.h * 0.8) break;
