@@ -25,7 +25,7 @@ class MusicFilm extends Film {
 
   localT(shot, T) {
     const span = Math.max(1, (shot.until ?? T + 10) - shot.start);
-    const rate = clamp(LOCAL_SPAN / span, 0.35, 1);
+    const rate = clamp(LOCAL_SPAN / span, 0.75, 1);
     const p = this.clock.beatPhase(T);
     // Motion speeds up right after each beat and settles before the next one.
     const surge = 0.35 * (easeOutCubic(p) - p);

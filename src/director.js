@@ -8,6 +8,7 @@ import { PAINTINGS } from './library.js';
 import { ASCII_SCENES } from './layers/ascii.js';
 import { TECHNO_SCENES, drawHUD } from './layers/techno.js';
 import { PAINT_SCENES, subjectFor } from './layers/paint.js';
+import { InkLife } from './layers/inklife.js';
 import { TypeLayer } from './layers/type.js';
 
 const SCENE_CLASSES = { ...ASCII_SCENES, ...TECHNO_SCENES, ...PAINT_SCENES };
@@ -55,6 +56,7 @@ export class Director {
     this.segIndex = -1;
     this.instances.clear();
     this.insert = null;
+    this.ink = new Map();
     this.sceneRnd = mulberry32(this.seed ^ 0x51ed);
   }
 
@@ -283,22 +285,30 @@ export class Director {
       if (ok) return;
     }
     if (PAINT_KINDS.has(seg.kind)) {
-      const sway = Math.sin(f.mt * 0.4) * 18;
+      // no camera wandering: the painting holds still and its contents move
       const cam = {
-        x: sway, y: 0,
-        dolly: f.pulse * 0.012 + (f.beat.onDownbeat ? 0.01 : 0),
-        zoom: 1 + f.pulse * (0.012 + seg.intensity * 0.02) + f.hit * 0.02,
-        roll: (f.hit > 0.6 ? 0.006 : 0) * (f.beat.index % 2 ? 1 : -1),
+        x: 0, y: 0,
+        dolly: f.pulse * 0.006,
+        zoom: 1 + f.pulse * (0.006 + seg.intensity * 0.01),
+        roll: 0,
       };
       const canvas = this.painting.render(f.t, cam);
+      let ink = this.ink.get(i);
+      if (!ink) { ink = new InkLife(this.w, this.h, mulberry32(seg.seed ^ 0x77), seg.params.id); this.ink.set(i, ink); }
+      const pw = canvas.width, ph = canvas.height;
+      const s = Math.max(f.w / pw, f.h / ph);
+      const sw = f.w / s, sh = f.h / s;
       if (seg.kind === 'painting') {
-        const pw = canvas.width, ph = canvas.height;
-        const s = Math.max(f.w / pw, f.h / ph);
-        const sw = f.w / s, sh = f.h / s;
         g.drawImage(canvas, (pw - sw) / 2, (ph - sh) / 2, sw, sh, 0, 0, f.w, f.h);
+        ink.draw(g, f);
         return;
       }
-      this.instance(i).draw(g, f, canvas);
+      // painting + its living ink, then rewritten in characters
+      if (!this.mix) { this.mix = document.createElement('canvas'); this.mix.width = this.w; this.mix.height = this.h; }
+      const mg = this.mix.getContext('2d');
+      mg.drawImage(canvas, (pw - sw) / 2, (ph - sh) / 2, sw, sh, 0, 0, f.w, f.h);
+      ink.draw(mg, f);
+      this.instance(i).draw(g, f, this.mix);
       return;
     }
     const inst = this.instance(i);
