@@ -9,3 +9,8 @@ export async function loadIndex() {
   const res = await fetch(BASE + 'index.json');
   return res.json();
 }
+
+export async function loadCategories() {
+  const res = await fetch(BASE + 'categories.json');
+  return res.json();
+}

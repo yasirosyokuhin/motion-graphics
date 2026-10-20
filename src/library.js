@@ -47,7 +47,7 @@ function tagsOf(text) {
 }
 
 // Categories that read well full-screen in a music video, and how often.
-const CATEGORY_WEIGHT = {
+export const CATEGORY_WEIGHT = {
   landscapes: 1.4, cosmos: 1.3, solids: 1.3, demoscene: 1.5, algorithms: 1.2, 'motion-lab': 1.0, weather: 1.2,
   animals: 0.8, cities: 1.2, lettering: 0.5, music: 1.0, retro: 0.7, arcade: 0.4, science: 0.6, occasions: 0.3,
   things: 0.3, india: 0.3, food: 0.1, mascots: 0.15, frames: 0, screens: 0, 'live-data': 0, explainers: 0, 'empty-states': 0,

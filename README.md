@@ -39,4 +39,4 @@ npx http-server -c-1 .     # 任意の静的サーバでOK
 
 ## アーティファクト用ビルド
 
-`npm install && npm run build:artifact` で `dist/artifact/`（ページ + 1本のスクリプト）を生成します。全 ASCII 作品を静的に束ねるので、ファイル数制限のある公開先でも動きます。埋め込み版ではダウンロードが使えないため EXPORT ボタンは隠れ、開いた時点でデモ曲を準備します。
+`npm install && npm run build:artifact` で `dist/artifact/`（MV生成ページ）と `dist/catalog/`（ASCII作品カタログ）を生成します。ローカルでは `catalog.html` でカタログを開けます。全 ASCII 作品を静的に束ねるので、ファイル数制限のある公開先でも動きます。埋め込み版ではダウンロードが使えないため EXPORT ボタンは隠れ、開いた時点でデモ曲を準備します。
