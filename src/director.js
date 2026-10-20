@@ -36,13 +36,15 @@ const SUIT = {
 };
 
 // Feedback trail strength per kind (paintings already carry their own motion).
-const TRAIL = { painting: 0.25, paintAscii: 0.45, piece: 0.5, asciiText: 0.55, geoBlocks: 0.3, geoGrid: 0.6, geoPulse: 0.85, asciiTunnel: 0.7, asciiShape: 0.7, asciiSpectrum: 0.6, fish: 0.6, oil: 0.15, vangogh: 0.3, watercolor: 0.1, ukiyoe: 0.3, popart: 0.3 };
+const TRAIL = { painting: 0.25, paintAscii: 0.45, piece: 0.3, asciiText: 0.55, geoBlocks: 0.3, geoGrid: 0.6, geoPulse: 0.85, asciiTunnel: 0.7, asciiShape: 0.7, asciiSpectrum: 0.6, fish: 0.6, oil: 0.15, vangogh: 0.3, watercolor: 0.1, ukiyoe: 0.3, popart: 0.3 };
 
 export class Director {
   constructor({ analysis, lyrics, style, library, title, artist, w, h, seed, pieces, painting, forceKind }) {
     Object.assign(this, { analysis, lyrics, style, library, title, artist, w, h, seed, pieces, painting, forceKind });
     this.timeline = new Timeline(analysis);
     this.typeLayer = new TypeLayer(style);
+    // the ASCII showcase keeps lyrics in a small lower third so the art stays visible
+    this.typeLayer.compact = forceKind === 'ascii' || forceKind === 'piece';
     this.segments = [];
     this.instances = new Map();
     this.reset();
@@ -98,7 +100,9 @@ export class Director {
       const barsPerCut = Math.max(1, I > 0.72 ? Math.round(S.cutBars / 2) : I > 0.4 ? S.cutBars : S.cutBars * 2);
       const barLen = 240 / A.bpm;
       // keep cuts between ~1.5 s and ~16 s whatever the tempo
-      const step = clamp(barsPerCut, Math.ceil(1.5 / barLen), Math.max(1, Math.floor(16 / barLen)));
+      // the ASCII showcase cuts to a new piece every two bars
+      const showcase = this.forceKind === 'ascii' || this.forceKind === 'piece';
+      const step = clamp(showcase ? 2 : barsPerCut, Math.ceil(1.5 / barLen), Math.max(1, Math.floor(16 / barLen)));
       for (let b = sec.startBar; b < sec.endBar; b += step) {
         const start = A.bars[b];
         const end = A.bars[Math.min(b + step, sec.endBar)] ?? A.duration;
@@ -130,7 +134,9 @@ export class Director {
         }
         if (this.forceKind && this.forceKind !== 'auto') {
           kind = this.forceKind === 'paintings' ? rnd.pick([...PAINTERS, ...(paintOK ? ['painting'] : [])])
-            : this.forceKind === 'painters' ? rnd.pick([...PAINTERS]) : this.forceKind;
+            : this.forceKind === 'painters' ? rnd.pick([...PAINTERS])
+            : this.forceKind === 'ascii' ? rnd.weighted([['piece', 7], ['asciiText', 1], ['asciiTunnel', 0.6], ['asciiShape', 0.6], ['asciiSpectrum', 0.5], ['fish', 0.6], ['paintAscii', paintOK ? 0.6 : 0]])
+            : this.forceKind;
           if (PAINT_KINDS.has(kind) && !paintOK) kind = 'oil';
           if (kind !== 'piece') delete params.slug;
           if (!PAINT_KINDS.has(kind)) delete params.id;
@@ -276,7 +282,10 @@ export class Director {
       g.fillStyle = rgbToCss(S.bg);
       g.fillRect(0, 0, f.w, f.h);
       const p = seg.params;
-      const look = f.hit > 0.65 ? p.altLook : p.look;
+      // loud passages re-letter the piece in another character set every bar
+      const looks = this.style.looks;
+      const look = f.hit > 0.65 ? p.altLook
+        : seg.intensity > 0.6 && looks.length > 1 ? looks[(looks.indexOf(p.look) + f.beat.bar) % looks.length] : p.look;
       const ok = this.pieces.draw(g, f.w, f.h, {
         slug: p.slug, t: p.offset + f.mt * (0.8 + f.energy * 0.5), look, colorMode: p.colorMode, style: S,
         zoom: 1 + f.pulse * 0.035 + clamp(f.segT / 20) * 0.08,

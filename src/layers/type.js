@@ -31,7 +31,7 @@ export class TypeLayer {
     let kind = rnd.pick(S.type);
     if (kind === 'vertical' && !isCJK(lyric.text)) kind = 'typewriter';
     // big lettering scenes already shout the line; keep the overlay quiet there
-    if (scene === 'asciiText' || scene === 'geoBlocks') kind = 'typewriter';
+    if (scene === 'asciiText' || scene === 'geoBlocks' || this.compact) kind = 'typewriter';
     return { kind, rnd };
   }
 

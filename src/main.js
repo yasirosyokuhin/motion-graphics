@@ -50,7 +50,7 @@ const state = {
 };
 const g = state.stage.getContext('2d');
 
-for (const [k, label] of [['auto', 'シーン: 自動ミックス'], ['paintings', 'シーン: 絵画だけ'], ['painters', 'シーン: 絵画（水墨画以外）'], ...Object.entries(KIND_LABEL).map(([key, l]) => [key, `シーン: ${l}`])]) {
+for (const [k, label] of [['auto', 'シーン: 自動ミックス'], ['paintings', 'シーン: 絵画だけ'], ['painters', 'シーン: 絵画（水墨画以外）'], ['ascii', 'シーン: ASCIIだけ（632作品から）'], ...Object.entries(KIND_LABEL).map(([key, l]) => [key, `シーン: ${l}`])]) {
   const o = document.createElement('option');
   o.value = k; o.textContent = label;
   ui.scene.append(o);
@@ -336,7 +336,7 @@ window.__mv = { state, generate, loadBuffer, renderDemo, DEMO_LYRICS, rgbToCss }
 // hidden, and the demo song is prepared on load so the page opens ready to play.
 if (window.MV_EMBED) {
   ui.export.hidden = true;
-  ui.scene.value = 'painters';
+  ui.scene.value = 'ascii';
   ui.demo.click();
 }
 
