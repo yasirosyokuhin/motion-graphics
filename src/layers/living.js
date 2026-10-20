@@ -119,6 +119,9 @@ export class Composition {
     this.flash = 0;
     this.boat = { x: rnd() * W };
     this.data = null;
+    // where the sky ends (fraction of height) and what glows, for the painters
+    this.horizon = { night: 0.66, sunset: 0.62, mountains: 0.42, flowers: 0.58, city: 0.3, wave: 0.5, starry: 0.72 }[subject] ?? 0.6;
+    this.lights = [];
   }
 
   ridge(y0, amp, scale, seed, sway = 0) {
@@ -199,6 +202,7 @@ export class Composition {
         const mx = W * (0.62 + grow * 0.1), my = lerp(hy - m * 0.05, H * 0.2, grow), mr = m * 0.085;
         this.glow(mx, my, mr * (3 + bass * 1.5), 'rgba(255,240,190,A)', 0.35 + bass * 0.35);
         g.fillStyle = '#fff4cf'; g.beginPath(); g.arc(mx, my, mr, 0, TAU); g.fill();
+        this.lights = [{ x: mx, y: my, r: mr }];
         this.moveClouds(dt, 1 + energy * 2);
         for (const c of this.clouds) this.cloud(c, 'rgba(40,60,100,0.85)', 'rgba(255,240,200,0.5)');
         this.flock.update(dt, 25 + energy * 30, f.beat.phase);
@@ -231,6 +235,7 @@ export class Composition {
         const sr = m * (0.12 + bass * 0.02), sx = W * 0.5, sy = lerp(H * 0.25, hy + sr * 0.3, grow);
         this.glow(sx, sy, sr * 3.2, 'rgba(255,220,150,A)', 0.55);
         g.fillStyle = '#fff1b8'; g.beginPath(); g.arc(sx, sy, sr, 0, TAU); g.fill();
+        this.lights = sy < hy ? [{ x: sx, y: sy, r: sr * 0.8 }] : [];
         this.flock.update(dt, 30 + energy * 40, f.beat.phase);
         this.flock.draw(g, '#3a1a3a');
         g.fillStyle = '#6b2f57'; this.ridge(hy + 1, H * 0.1, 0.015, 5);
@@ -449,6 +454,7 @@ export class Composition {
         this.shootingStar(f);
         g.fillStyle = '#ffe066'; g.beginPath(); g.arc(W * 0.86, H * 0.14, m * 0.07, 0, TAU); g.fill();
         g.fillStyle = '#163a7a'; g.beginPath(); g.arc(W * 0.875, H * 0.13, m * 0.06, 0, TAU); g.fill();
+        this.lights = [{ x: W * 0.86, y: H * 0.14, r: m * 0.07 }, ...this.big.filter((s) => s.r > 3.5).map((s) => ({ x: s.x, y: s.y, r: s.r * 1.4 }))];
         g.fillStyle = '#1e3d72'; this.ridge(hy, H * 0.1, 0.015, 4);
         g.fillStyle = '#16264a'; g.fillRect(0, hy, W, H - hy);
         for (let i = 0; i < 14; i++) {

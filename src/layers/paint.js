@@ -5,6 +5,9 @@
 
 import { makeNoise, mulberry32, rgbToCss, hexToRgb, mixRgb } from '../util.js';
 import { Composition, SUBJECTS } from './living.js';
+import { BrushField } from './brushfield.js';
+import { sharedStrokes } from '../gl/strokes.js';
+import { InkWash } from './inkwash.js';
 
 const TAU = Math.PI * 2;
 
@@ -77,164 +80,45 @@ class Painter {
   }
 }
 
-// Brush styles repaint the moving picture every frame: the previous strokes are
-// partly covered by a soft wash of the current frame, then fresh strokes go on,
-// so the subject keeps moving and the paint itself shimmers ("boils").
-function refresh(P, comp, f, alpha) {
-  P.globalAlpha = alpha;
-  P.imageSmoothingEnabled = true;
-  P.drawImage(comp.canvas, 0, 0, f.w, f.h);
-  P.globalAlpha = 1;
-}
-
-// Impressionist oil: short loaded strokes; pointillism variant.
-export class OilPaint extends Painter {
-  constructor(w, h, style, rnd, params) {
-    super(w, h, style, rnd, params);
-    this.dots = rnd() < 0.3;
+// Oil and Van Gogh: a fixed field of real brushstrokes (GPU, with bristles and
+// impasto) laid over the moving picture; see brushfield.js and gl/strokes.js.
+class StrokePainter extends Painter {
+  constructor(w, h, style, rnd, params, kind) {
+    super(w, h, style, rnd, { ...params, res: 400 });
+    this.field = new BrushField(w, h, rnd, kind);
+    this.renderer = sharedStrokes(w, h);
+    this.kind = kind;
   }
   draw(g, f) {
-    const P = this.g, comp = this.comp;
-    comp.update(f);
-    refresh(P, comp, f, this.frames++ === 0 ? 1 : 0.3);
-    const m = Math.min(f.w, f.h);
-    const size = m * (this.dots ? 0.011 : 0.026) * (1 + f.pulse * 0.35);
-    const n = Math.round((this.dots ? 1400 : 420) + f.energy * (this.dots ? 1200 : 500) + (f.beat.onBeat ? 250 : 0));
-    P.lineCap = 'round';
-    for (let i = 0; i < n; i++) {
-      const x = this.rnd() * f.w, y = this.rnd() * f.h;
-      let [r, gg, b] = comp.sample(x, y);
-      const j = (this.rnd() - 0.5) * 40;
-      r += j + (this.rnd() - 0.5) * 30; gg += j; b += j + (this.rnd() - 0.5) * 30;
-      if (this.dots) {
-        P.fillStyle = rgbToCss([r, gg, b]);
-        P.beginPath(); P.arc(x, y, size * (0.6 + this.rnd() * 0.5), 0, TAU); P.fill();
-        continue;
-      }
-      const a = this.noise.noise3(x * 0.004, y * 0.004, f.mt * 0.2) * TAU * 2;
-      const len = size * (1.2 + this.rnd());
-      const dx = Math.cos(a) * len / 2, dy = Math.sin(a) * len / 2;
-      P.lineWidth = size * (0.6 + this.rnd() * 0.5);
-      P.strokeStyle = rgbToCss([r, gg, b], 0.9);
-      P.beginPath(); P.moveTo(x - dx, y - dy); P.lineTo(x + dx, y + dy); P.stroke();
-      P.lineWidth *= 0.3;
-      P.strokeStyle = rgbToCss([r + 40, gg + 40, b + 40], 0.35);
-      P.beginPath(); P.moveTo(x - dx, y - dy - P.lineWidth); P.lineTo(x + dx, y + dy - P.lineWidth); P.stroke();
-    }
-    g.drawImage(this.canvas, 0, 0);
-    overlayGrain(g, f, 'canvas', 0.35);
+    this.comp.update(f);
+    const n = this.field.fill(f, this.comp);
+    const ground = this.kind === 'vangogh' ? [0.42, 0.36, 0.26] : [0.62, 0.56, 0.46];
+    g.drawImage(this.renderer.draw(this.comp.canvas, this.field.data, n, { ground, mix: this.kind === 'dots' ? 0.6 : 0.9 }), 0, 0);
   }
 }
 
-// Van Gogh: long thick strokes that follow swirling currents; the vortices turn with the music.
-export class VanGogh extends Painter {
+// Impressionist oil (Monet's broken colour) or, one time in four, Seurat's dots.
+export class OilPaint extends StrokePainter {
   constructor(w, h, style, rnd, params) {
-    super(w, h, style, rnd, params);
-    this.swirls = Array.from({ length: 3 }, (_, i) => ({ x: (0.25 + i * 0.25 + (rnd() - 0.5) * 0.1) * w, y: (0.2 + rnd() * 0.25) * h, s: (rnd() < 0.5 ? 1 : -1) }));
-    this.spin = 0;
-  }
-  angle(x, y, f) {
-    let a = this.noise.noise3(x * 0.003, y * 0.003, f.mt * 0.1) * TAU;
-    if (y < f.h * 0.65) {
-      let wx = 1, wy = 0;
-      for (const s of this.swirls) {
-        const sx = s.x + Math.cos(this.spin * 0.3 + s.s) * f.w * 0.03, sy = s.y + Math.sin(this.spin * 0.3) * f.h * 0.02;
-        const dx = x - sx, dy = y - sy, d2 = dx * dx + dy * dy + 900;
-        const k = (f.h * f.h * 0.02) / d2;
-        wx += -dy * s.s * k; wy += dx * s.s * k;
-      }
-      a = Math.atan2(wy, wx) + Math.sin(this.spin) * 0.25;
-    } else {
-      a = a * 0.4 + (y > f.h * 0.8 ? 0 : -0.3);
-    }
-    return a;
-  }
-  draw(g, f) {
-    const P = this.g, comp = this.comp;
-    comp.update(f);
-    refresh(P, comp, f, this.frames++ === 0 ? 1 : 0.22);
-    this.spin += f.dt * (0.6 + f.energy * 1.5) + (f.beat.onBeat ? 0.25 : 0);
-    const m = Math.min(f.w, f.h);
-    const width = m * 0.013 * (1 + f.pulse * 0.3);
-    const n = Math.round(200 + f.energy * 260 + (f.beat.onDownbeat ? 150 : 0));
-    P.lineCap = 'round';
-    P.lineJoin = 'round';
-    for (let i = 0; i < n; i++) {
-      let x = this.rnd() * f.w, y = this.rnd() * f.h;
-      const [r, gg, b] = comp.sample(x, y);
-      const pts = [[x, y]];
-      const step = width * 0.9;
-      for (let k = 0; k < 6; k++) {
-        const a = this.angle(x, y, f);
-        x += Math.cos(a) * step; y += Math.sin(a) * step;
-        pts.push([x, y]);
-      }
-      const path = () => { P.beginPath(); P.moveTo(pts[0][0], pts[0][1]); for (const p of pts) P.lineTo(p[0], p[1]); };
-      path();
-      P.lineWidth = width * 1.3;
-      P.strokeStyle = rgbToCss([r * 0.6, gg * 0.6, b * 0.7], 0.7);
-      P.stroke();
-      path();
-      P.lineWidth = width;
-      const lift = this.rnd() * 50;
-      P.strokeStyle = rgbToCss([r + lift, gg + lift, b + lift * 0.6]);
-      P.stroke();
-    }
-    g.drawImage(this.canvas, 0, 0);
-    overlayGrain(g, f, 'canvas', 0.3);
+    super(w, h, style, rnd, params, rnd() < 0.25 ? 'dots' : 'monet');
   }
 }
 
-// Watercolour: the moving picture as a pale wash under pigment blooms with dark
-// wet edges; blooms land all the time (more on the beat) and dry out quickly.
+export class VanGogh extends StrokePainter {
+  constructor(w, h, style, rnd, params) {
+    super(w, h, style, rnd, params, 'vangogh');
+  }
+}
+
+// Watercolour: the living picture painted with the wet-paper simulation.
 export class Watercolor extends Painter {
+  constructor(w, h, style, rnd, params) {
+    super(w, h, style, rnd, params);
+    this.wash = new InkWash(w, h, rnd, 'water');
+  }
   draw(g, f) {
-    const P = this.g, comp = this.comp;
-    comp.update(f);
-    if (this.frames++ === 0) { P.fillStyle = '#ffffff'; P.fillRect(0, 0, f.w, f.h); }
-    P.globalCompositeOperation = 'source-over';
-    P.fillStyle = 'rgba(255,255,255,0.1)';
-    P.fillRect(0, 0, f.w, f.h);
-    const m = Math.min(f.w, f.h);
-    const n = Math.round(14 + f.energy * 20 + (f.beat.onBeat ? 16 : 0));
-    const R = m * 0.045;
-    P.globalCompositeOperation = 'multiply';
-    for (let i = 0; i < n; i++) {
-      const x = this.rnd() * f.w, y = this.rnd() * f.h;
-      const c = comp.sample(x, y);
-      const r = R * (0.5 + this.rnd() * 0.9) * (1 + f.pulse * 0.3);
-      const seed = this.rnd() * 100;
-      P.beginPath();
-      for (let k = 0; k <= 18; k++) {
-        const a = (k / 18) * TAU;
-        const rr = r * (0.7 + this.noise.noise3(Math.cos(a) + seed, Math.sin(a) + seed, 0) * 0.6);
-        const px = x + Math.cos(a) * rr, py = y + Math.sin(a) * rr;
-        k ? P.lineTo(px, py) : P.moveTo(px, py);
-      }
-      P.closePath();
-      P.fillStyle = rgbToCss(c, 0.3);
-      P.fill();
-      P.lineWidth = 2;
-      P.strokeStyle = rgbToCss(mixRgb(c, [0, 0, 0], 0.35), 0.3);
-      P.stroke();
-    }
-    if (f.hit > 0.6) {
-      for (let i = 0; i < 40; i++) {
-        const x = this.rnd() * f.w, y = this.rnd() * f.h;
-        P.fillStyle = rgbToCss(comp.sample(x, y), 0.6);
-        P.beginPath(); P.arc(x, y, 1 + this.rnd() * 4, 0, TAU); P.fill();
-      }
-    }
-    P.globalCompositeOperation = 'source-over';
-    g.fillStyle = '#f7f2e8';
-    g.fillRect(0, 0, f.w, f.h);
-    g.globalAlpha = 0.7;
-    g.drawImage(comp.canvas, 0, 0, f.w, f.h);
-    g.globalAlpha = 1;
-    g.globalCompositeOperation = 'multiply';
-    g.drawImage(this.canvas, 0, 0);
-    g.globalCompositeOperation = 'source-over';
-    overlayGrain(g, f, 'paper', 0.3);
+    this.comp.update(f);
+    g.drawImage(this.wash.paint(f, this.comp.canvas), 0, 0);
   }
 }
 

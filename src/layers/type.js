@@ -72,6 +72,8 @@ export class TypeLayer {
     if (kind === 'vertical' && !isCJK(lyric.text)) kind = 'decode';
     // scenes that already shout the line (or show off the art) get the quiet lower third
     if (scene === 'asciiText' || scene === 'geoBlocks' || this.compact) kind = 'decode';
+    // over paintings: quiet settings only
+    else if (['painting', 'oil', 'vangogh', 'watercolor', 'ukiyoe'].includes(scene)) kind = isCJK(lyric.text) && rnd() < 0.6 ? 'vertical' : 'decode';
     return { kind, rnd };
   }
 

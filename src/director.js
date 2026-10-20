@@ -9,7 +9,7 @@ import { PAINTINGS } from './library.js';
 import { ASCII_SCENES } from './layers/ascii.js';
 import { TECHNO_SCENES, drawHUD } from './layers/techno.js';
 import { PAINT_SCENES, subjectFor } from './layers/paint.js';
-import { InkLife } from './layers/inklife.js';
+import { InkWash } from './layers/inkwash.js';
 import { TypeLayer } from './layers/type.js';
 
 const SCENE_CLASSES = { ...ASCII_SCENES, ...TECHNO_SCENES, ...PAINT_SCENES };
@@ -37,7 +37,7 @@ const SUIT = {
 };
 
 // Feedback trail strength per kind (paintings already carry their own motion).
-const TRAIL = { painting: 0.25, paintAscii: 0.45, piece: 0.3, asciiText: 0.55, geoBlocks: 0.3, geoGrid: 0.6, geoPulse: 0.85, asciiTunnel: 0.7, asciiShape: 0.7, asciiSpectrum: 0.6, fish: 0.6, oil: 0.15, vangogh: 0.3, watercolor: 0.1, ukiyoe: 0.3, popart: 0.3 };
+const TRAIL = { painting: 0.04, paintAscii: 0.45, piece: 0.3, asciiText: 0.55, geoBlocks: 0.3, geoGrid: 0.6, geoPulse: 0.85, asciiTunnel: 0.7, asciiShape: 0.7, asciiSpectrum: 0.6, fish: 0.6, oil: 0.06, vangogh: 0.1, watercolor: 0.04, ukiyoe: 0.3, popart: 0.3 };
 
 export class Director {
   constructor({ analysis, lyrics, style, library, title, artist, w, h, seed, pieces, painting, forceKind }) {
@@ -303,22 +303,18 @@ export class Director {
         roll: 0,
       };
       const canvas = this.painting.render(f.t, cam);
+      // the painting is the underdrawing; ink and water soak it into the paper
       let ink = this.ink.get(i);
-      if (!ink) { ink = new InkLife(this.w, this.h, mulberry32(seg.seed ^ 0x77), seg.params.id); this.ink.set(i, ink); }
+      if (!ink) { ink = new InkWash(this.w, this.h, mulberry32(seg.seed ^ 0x77), 'sumi'); this.ink.set(i, ink); }
+      if (!this.mix) { this.mix = document.createElement('canvas'); this.mix.width = this.w; this.mix.height = this.h; }
       const pw = canvas.width, ph = canvas.height;
       const s = Math.max(f.w / pw, f.h / ph);
       const sw = f.w / s, sh = f.h / s;
-      if (seg.kind === 'painting') {
-        g.drawImage(canvas, (pw - sw) / 2, (ph - sh) / 2, sw, sh, 0, 0, f.w, f.h);
-        ink.draw(g, f);
-        return;
-      }
-      // painting + its living ink, then rewritten in characters
-      if (!this.mix) { this.mix = document.createElement('canvas'); this.mix.width = this.w; this.mix.height = this.h; }
       const mg = this.mix.getContext('2d');
       mg.drawImage(canvas, (pw - sw) / 2, (ph - sh) / 2, sw, sh, 0, 0, f.w, f.h);
-      ink.draw(mg, f);
-      this.instance(i).draw(g, f, this.mix);
+      const wash = ink.paint(f, this.mix);
+      if (seg.kind === 'painting') { g.drawImage(wash, 0, 0); return; }
+      this.instance(i).draw(g, f, wash);
       return;
     }
     const inst = this.instance(i);
@@ -350,7 +346,9 @@ export class Director {
   }
 
   postParams(f, seg) {
-    const fx = this.style.fx;
+    // paintings keep their surface: no scanlines or tearing, only a little colour fringe
+    const painted = ['painting', 'oil', 'vangogh', 'watercolor'].includes(seg.kind);
+    const fx = painted ? { ...this.style.fx, rgb: this.style.fx.rgb * 0.15, glitch: 0, scan: 0, grain: this.style.fx.grain * 0.4, strobe: this.style.fx.strobe * 0.3, bloom: this.style.fx.bloom * 0.4 } : this.style.fx;
     const I = f.section.intensity;
     const downFlash = I > 0.7 && f.beat.index % 4 === 0 && f.beat.phase < 0.08 ? 0.3 : 0;
     return {
