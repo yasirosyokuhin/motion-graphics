@@ -1,0 +1,13 @@
+{
+  "name": "mv-gen",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "serve": "npx http-server -c-1 .",
+    "index": "node tools/build-piece-index.mjs",
+    "build:artifact": "node tools/build-artifact.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.0"
+  }
+}

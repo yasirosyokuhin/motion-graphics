@@ -3,6 +3,7 @@
 // like "月が綺麗な夜" pulls a moon piece or the moon-over-the-lake painting.
 
 import { isCJK } from './util.js';
+import { loadIndex } from './piece-source.js';
 
 // Japanese (and a few loose English forms) -> English tag words.
 const JA = [
@@ -84,9 +85,8 @@ export class Library {
     this.all = index;
   }
 
-  static async load(url = 'vendor/ascii-magic-art/index.json') {
-    const res = await fetch(url);
-    return new Library(await res.json());
+  static async load() {
+    return new Library(await loadIndex());
   }
 
   // Pieces whose tags/name match the words of a lyric line, best first.

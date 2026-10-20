@@ -61,5 +61,5 @@ button.primary:hover:not(:disabled) { background: var(--acc); }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
 @media (max-width: 900px) {
   .app { grid-template-columns: 1fr; height: auto; }
-  .stage { min-height: 70vh; }
+  .stage { min-height: 60vh; order: -1; }
 }

@@ -3,8 +3,7 @@
 
 import { paint, frameFor, cellAspect, GlyphAtlas } from '../../vendor/ascii-magic-art/runtime/canvas.js';
 import { hexToRgb, luminance, mixRgb, clamp } from '../util.js';
-
-const BASE = new URL('../../vendor/ascii-magic-art/pieces/', import.meta.url).href;
+import { loadPiece } from '../piece-source.js';
 const toHex = (c) => '#' + c.map((v) => Math.round(clamp(v, 0, 255)).toString(16).padStart(2, '0')).join('');
 
 function saturation([r, g, b]) {
@@ -46,7 +45,7 @@ export class PieceLayer {
 
   async load(slug) {
     if (this.cache.has(slug)) return this.cache.get(slug);
-    const mod = await import(BASE + slug + '.js');
+    const mod = await loadPiece(slug);
     const entry = { meta: mod.meta, draw: mod.default() };
     this.cache.set(slug, entry);
     return entry;

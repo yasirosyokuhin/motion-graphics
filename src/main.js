@@ -324,4 +324,11 @@ state.audio.stop = () => {
 // debug / automation hook
 window.__mv = { state, generate, loadBuffer, renderDemo, DEMO_LYRICS, rgbToCss };
 
+// Embedded build (claude.ai artifact): downloads are blocked there, so export is
+// hidden, and the demo song is prepared on load so the page opens ready to play.
+if (window.MV_EMBED) {
+  ui.export.hidden = true;
+  ui.demo.click();
+}
+
 requestAnimationFrame(frame);
