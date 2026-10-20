@@ -277,7 +277,9 @@ export class Director {
 
   drawScene(g, f, seg, i) {
     const S = this.style;
-    const ins = seg.kind !== 'asciiText' && this.insertFor(f, seg);
+    // stutter inserts belong to the graphic scenes, never inside a painting
+    const painted = PAINT_KINDS.has(seg.kind) || PAINTERS.has(seg.kind);
+    const ins = seg.kind !== 'asciiText' && !painted && this.insertFor(f, seg);
     if (ins) { ins.draw(g, f); return; }
     if (seg.kind === 'piece') {
       g.fillStyle = rgbToCss(S.bg);
@@ -347,7 +349,7 @@ export class Director {
 
   postParams(f, seg) {
     // paintings keep their surface: no scanlines or tearing, only a little colour fringe
-    const painted = ['painting', 'oil', 'vangogh', 'watercolor'].includes(seg.kind);
+    const painted = seg.kind === 'painting' || PAINTERS.has(seg.kind);
     const fx = painted ? { ...this.style.fx, rgb: this.style.fx.rgb * 0.15, glitch: 0, scan: 0, grain: this.style.fx.grain * 0.4, strobe: this.style.fx.strobe * 0.3, bloom: this.style.fx.bloom * 0.4 } : this.style.fx;
     const I = f.section.intensity;
     const downFlash = I > 0.7 && f.beat.index % 4 === 0 && f.beat.phase < 0.08 ? 0.3 : 0;
