@@ -15,7 +15,7 @@ import { hashString, fmtTime, rgbToCss } from './util.js';
 const $ = (id) => document.getElementById(id);
 const ui = {
   file: $('file'), drop: $('drop'), demo: $('demo'), title: $('title'), artist: $('artist'), lyrics: $('lyrics'),
-  tap: $('tap'), copyLrc: $('copyLrc'), preset: $('preset'), aspect: $('aspect'), quality: $('quality'), intensity: $('intensity'),
+  tap: $('tap'), copyLrc: $('copyLrc'), preset: $('preset'), scene: $('scene'), aspect: $('aspect'), quality: $('quality'), intensity: $('intensity'),
   generate: $('generate'), reroll: $('reroll'), out: $('out'), overlay: $('overlay'), rec: $('rec'), tapbox: $('tapbox'),
   play: $('play'), time: $('time'), timeline: $('timeline'), fullscreen: $('fullscreen'), export: $('export'),
   chips: $('chips'), legend: $('legend'), screen: $('screen'),
@@ -24,11 +24,14 @@ const ui = {
 const KIND_COLORS = {
   painting: '#e8d9b0', paintAscii: '#b49a6a', piece: '#00f0ff', asciiTunnel: '#7b2cff', asciiShape: '#9b5de5',
   asciiText: '#ff2bd6', asciiSpectrum: '#39ff14', fish: '#2de2e6', geoPulse: '#ff6c11', geoGrid: '#ff3864', geoBlocks: '#ffd23f',
+  oil: '#d98e4a', vangogh: '#3b6fd8', watercolor: '#9fd3c7', ukiyoe: '#c8553d', popart: '#ff2e88',
 };
 const KIND_LABEL = {
   painting: '絵画', paintAscii: '絵画→ASCII', piece: 'ASCIIアート', asciiTunnel: 'トンネル', asciiShape: '3D', asciiText: '歌詞ASCII',
   asciiSpectrum: 'スペクトラム', fish: '魚群', geoPulse: 'テクノ:パルス', geoGrid: 'テクノ:グリッド', geoBlocks: 'テクノ:ブロック',
+  oil: '油彩/点描', vangogh: 'ゴッホ風', watercolor: '水彩', ukiyoe: '浮世絵', popart: 'ポップアート',
 };
+KIND_LABEL.painting = '水墨画';
 
 const state = {
   audio: new AudioEngine(),
@@ -47,6 +50,11 @@ const state = {
 };
 const g = state.stage.getContext('2d');
 
+for (const [k, label] of [['auto', 'シーン: 自動ミックス'], ['paintings', 'シーン: 絵画だけ'], ['painters', 'シーン: 絵画（水墨画以外）'], ...Object.entries(KIND_LABEL).map(([key, l]) => [key, `シーン: ${l}`])]) {
+  const o = document.createElement('option');
+  o.value = k; o.textContent = label;
+  ui.scene.append(o);
+}
 for (const [k, p] of [['auto', { label: 'AUTO（自動判定）' }], ...Object.entries(PRESETS)]) {
   const o = document.createElement('option');
   o.value = k; o.textContent = p.label;
@@ -121,7 +129,7 @@ async function generate() {
     state.post.resize(w, h);
     const director = new Director({
       analysis: a, lyrics: state.timedLines, style, library: state.library, title, artist, w, h, seed,
-      pieces: state.pieces, painting: state.painting,
+      pieces: state.pieces, painting: state.painting, forceKind: ui.scene.value,
     });
     await director.plan((p, what) => overlay('GENERATING', what || style.label, p));
     state.director = director;
@@ -216,7 +224,7 @@ ui.demo.addEventListener('click', async () => {
 
 ui.generate.addEventListener('click', () => generate());
 ui.reroll.addEventListener('click', () => { state.seedSalt++; generate(); });
-for (const el of [ui.preset, ui.aspect, ui.quality]) el.addEventListener('change', () => state.director && generate());
+for (const el of [ui.preset, ui.scene, ui.aspect, ui.quality]) el.addEventListener('change', () => state.director && generate());
 ui.intensity.addEventListener('change', () => state.director && generate());
 
 ui.play.addEventListener('click', togglePlay);
@@ -328,6 +336,7 @@ window.__mv = { state, generate, loadBuffer, renderDemo, DEMO_LYRICS, rgbToCss }
 // hidden, and the demo song is prepared on load so the page opens ready to play.
 if (window.MV_EMBED) {
   ui.export.hidden = true;
+  ui.scene.value = 'painters';
   ui.demo.click();
 }
 

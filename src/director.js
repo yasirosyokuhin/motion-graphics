@@ -7,9 +7,11 @@ import { clamp, easeOutCubic, mulberry32, rgbToCss } from './util.js';
 import { PAINTINGS } from './library.js';
 import { ASCII_SCENES } from './layers/ascii.js';
 import { TECHNO_SCENES, drawHUD } from './layers/techno.js';
+import { PAINT_SCENES, subjectFor } from './layers/paint.js';
 import { TypeLayer } from './layers/type.js';
 
-const SCENE_CLASSES = { ...ASCII_SCENES, ...TECHNO_SCENES };
+const SCENE_CLASSES = { ...ASCII_SCENES, ...TECHNO_SCENES, ...PAINT_SCENES };
+const PAINTERS = new Set(Object.keys(PAINT_SCENES));
 const PAINT_KINDS = new Set(['painting', 'paintAscii']);
 
 // How well a kind of visual suits a section of a given intensity (0..1).
@@ -25,14 +27,19 @@ const SUIT = {
   geoPulse: (I) => 0.3 + I,
   geoGrid: (I) => 0.4 + I * 0.7,
   geoBlocks: (I) => 0.2 + I,
+  oil: (I) => 1.2 - I * 0.5,
+  vangogh: (I) => 0.7 + I * 0.3,
+  watercolor: (I) => 1.4 - I,
+  ukiyoe: () => 0.9,
+  popart: (I) => 0.4 + I,
 };
 
 // Feedback trail strength per kind (paintings already carry their own motion).
-const TRAIL = { painting: 0.25, paintAscii: 0.45, piece: 0.5, asciiText: 0.55, geoBlocks: 0.3, geoGrid: 0.6, geoPulse: 0.85, asciiTunnel: 0.7, asciiShape: 0.7, asciiSpectrum: 0.6, fish: 0.6 };
+const TRAIL = { painting: 0.25, paintAscii: 0.45, piece: 0.5, asciiText: 0.55, geoBlocks: 0.3, geoGrid: 0.6, geoPulse: 0.85, asciiTunnel: 0.7, asciiShape: 0.7, asciiSpectrum: 0.6, fish: 0.6, oil: 0.15, vangogh: 0.3, watercolor: 0.1, ukiyoe: 0.3, popart: 0.3 };
 
 export class Director {
-  constructor({ analysis, lyrics, style, library, title, artist, w, h, seed, pieces, painting }) {
-    Object.assign(this, { analysis, lyrics, style, library, title, artist, w, h, seed, pieces, painting });
+  constructor({ analysis, lyrics, style, library, title, artist, w, h, seed, pieces, painting, forceKind }) {
+    Object.assign(this, { analysis, lyrics, style, library, title, artist, w, h, seed, pieces, painting, forceKind });
     this.timeline = new Timeline(analysis);
     this.typeLayer = new TypeLayer(style);
     this.segments = [];
@@ -119,6 +126,13 @@ export class Director {
             }
           }
         }
+        if (this.forceKind && this.forceKind !== 'auto') {
+          kind = this.forceKind === 'paintings' ? rnd.pick([...PAINTERS, ...(paintOK ? ['painting'] : [])])
+            : this.forceKind === 'painters' ? rnd.pick([...PAINTERS]) : this.forceKind;
+          if (PAINT_KINDS.has(kind) && !paintOK) kind = 'oil';
+          if (kind !== 'piece') delete params.slug;
+          if (!PAINT_KINDS.has(kind)) delete params.id;
+        }
         if (!kind) {
           const entries = Object.entries(S.scenes)
             .filter(([k]) => (paintOK || !PAINT_KINDS.has(k)))
@@ -138,6 +152,7 @@ export class Director {
           params.offset = rnd() * 30;
         }
         if (PAINT_KINDS.has(kind) && !params.id) params.id = rnd.pick(songPaintings);
+        if (PAINTERS.has(kind)) params.subject = subjectFor(text || this.title, rnd);
         sameRun = kind === prevKind ? sameRun + 1 : 0;
         prevKind = kind;
         segs.push({ start, end, kind, params, section: sec.index, intensity: I, seed: Math.floor(rnd() * 1e9) });
@@ -181,7 +196,7 @@ export class Director {
     if (this.instances.has(i)) return this.instances.get(i);
     const seg = this.segments[i];
     const C = SCENE_CLASSES[seg.kind];
-    const inst = C ? new C(this.w, this.h, this.style, mulberry32(seg.seed)) : null;
+    const inst = C ? new C(this.w, this.h, this.style, mulberry32(seg.seed), seg.params) : null;
     // keep at most a few live scenes around
     if (this.instances.size > 3) this.instances.delete(this.instances.keys().next().value);
     this.instances.set(i, inst);
